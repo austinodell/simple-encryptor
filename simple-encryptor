@@ -35,7 +35,19 @@ select opt in "${options[@]}"; do
 
 		BASENAME=$(basename "$FILE")
 
-		read -es -p "Password: " PASS
+		MATCH=0
+		while [ $MATCH -eq 0 ]
+		do
+			read -es -p "Password: " PASS
+			echo
+			read -es -p "Confirm Password: " PASS_CHECK
+			echo
+			if [[ $PASS = $PASS_CHECK ]]; then
+				MATCH=1;
+			else
+				echo "Passwords do not match!";
+			fi
+		done
 
 		if [[ -d "$FILE" ]]; then
 			echo
