@@ -18,6 +18,7 @@ finish:
 clean:
 	@if test -e /usr/local/bin/simple-encryptor; then sudo rm -f /usr/local/bin/simple-encryptor; fi
 
-uninstall:
-	@sudo rm -f /usr/local/bin/simple-encryptor
+uninstall: clean
 	@rm -rf ~/.simple-encryptor
+
+reinstall: uninstall install finish
