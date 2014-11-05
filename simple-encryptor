@@ -51,13 +51,13 @@ select opt in "${options[@]}"; do
 
 		if [[ -d "$FILE" ]]; then
 			echo
-			zip -qr0 "$BASENAME.zip" "$FILE" &
+			zip -qr0 ".$BASENAME.zip" "$FILE" &
 			printf "Zipping Folder " ; spinner $!
 			echo "[+]"
-			openssl aes-256-cbc -pass pass:$PASS -in "$BASENAME.zip" -out "$BASENAME.zip.enc" &
+			openssl aes-256-cbc -pass pass:$PASS -in ".$BASENAME.zip" -out "$BASENAME.zip.enc" &
 			printf "Encrypting Folder " ; spinner $!
 			echo "[+]"
-			rm -f "$BASENAME.zip"
+			rm -f ".$BASENAME.zip"
 		else
 			echo
 			openssl aes-256-cbc -pass pass:$PASS -in "$FILE" -out "$BASENAME.enc" &
