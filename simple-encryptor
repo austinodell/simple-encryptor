@@ -1,0 +1,90 @@
+#!/bin/bash
+
+spinner()
+{
+    local pid=$1
+    local delay=0.75
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+prompt="Pick an option:"
+options=("Encrypt" "Decrypt" "Quit")
+
+clear
+echo "Encrypt / Decrypt a File"
+PS3="Mode: "
+select opt in "${options[@]}"; do 
+
+	case "$REPLY" in
+
+	1 )
+		VALID=0
+		while [ $VALID -eq 0 ]
+		do
+			read -e -p "File: " FILE
+			if test -e "$FILE"; then VALID=1 ; else echo "File does not exist!"; fi
+		done
+
+		BASENAME=$(basename "$FILE")
+
+		read -es -p "Password: " PASS
+
+		if [[ -d "$FILE" ]]; then
+			echo
+			zip -qr0 "$BASENAME.zip" "$FILE" &
+			printf "Zipping Folder " ; spinner $!
+			echo "[+]"
+			openssl aes-256-cbc -pass pass:$PASS -in "$BASENAME.zip" -out "$BASENAME.zip.enc" &
+			printf "Encrypting Folder " ; spinner $!
+			echo "[+]"
+			rm -f "$BASENAME.zip"
+		else
+			echo
+			openssl aes-256-cbc -pass pass:$PASS -in "$FILE" -out "$BASENAME.enc" &
+			printf "Encrypting File " ; spinner $!
+			echo "[+]"
+		fi
+		break
+		;;
+
+	2 )
+		VALID=0
+		while [ $VALID -eq 0 ]
+		do
+			read -e -p "File: " FILE
+                        if test -e "$FILE"; then VALID=1 ; else echo "File does not exist!"; fi
+                done
+
+		read -es -p "Password: " PASS
+
+		echo
+
+		NEWFILE=${FILE%%.enc}
+
+		openssl aes-256-cbc -d -pass pass:$PASS -in "$FILE" -out "$NEWFILE" &
+		printf "Decrypting " ; spinner $!
+		echo "[+]"
+
+		if [[ ${NEWFILE: -3} = "zip" ]]; then
+			unzip -q "$NEWFILE" &
+			printf "Extracting Folder " ; spinner $!
+			echo "[+]"
+			rm -f "$NEWFILE" > /dev/null
+		fi
+		break
+		;;
+
+	3 ) break;;
+	*) echo "Invalid option. Try another one.";continue;;
+
+	esac
+
+done
