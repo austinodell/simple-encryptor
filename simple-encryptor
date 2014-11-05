@@ -1,7 +1,5 @@
 #!/bin/bash
 
-db=~/.simple-encryptor/files.dat
-
 spinner()
 {
     local pid=$1
@@ -29,8 +27,13 @@ insert()
 retrieve()
 {
 	local enc=$1
+	local type=$(sqlite3 ~/.simple-encryptor/files.dat "select type from encrypt_names where enc_name='$enc'")
 	sql="select orig_name from encrypt_names where enc_name='$enc'"
-	OLDNAME=$(sqlite3 ~/.simple-encryptor/files.dat "$sql")
+	if [ $type -eq 0 ]; then
+		OLDNAME=$(sqlite3 ~/.simple-encryptor/files.dat "$sql");
+	else
+		OLDNAME=$(sqlite3 ~/.simple-encryptor/files.dat "$sql").zip;
+	fi
 }
 
 prompt="Pick an option:"
@@ -74,7 +77,7 @@ select opt in "${options[@]}"; do
 			zip -qr0 ".$NEWNAME.zip" "$FILE" &
 			printf "Zipping Folder " ; spinner $!
 			echo "[+]"
-			openssl aes-256-cbc -pass pass:$PASS -in ".$NEWNAME.zip" -out "$NEWNAME.zip.enc" &
+			openssl aes-256-cbc -pass pass:$PASS -in ".$NEWNAME.zip" -out "$NEWNAME.enc" &
 			printf "Encrypting Folder " ; spinner $!
 			echo "[+]"
 			rm -f ".$NEWNAME.zip"
@@ -101,17 +104,22 @@ select opt in "${options[@]}"; do
 		echo
 
 		NEWFILE=${FILE%%.enc}
-		retrieve ${NEWFILE%%.zip}
+		retrieve $NEWFILE
 
-		openssl aes-256-cbc -d -pass pass:$PASS -in "$FILE" -out "$OLDNAME" &
+		echo $OLDNAME
+		echo
+
+		openssl aes-256-cbc -d -pass pass:$PASS -in "$FILE" -out ".$OLDNAME" &
 		printf "Decrypting " ; spinner $!
 		echo "[+]"
 
 		if [[ ${OLDNAME: -3} = "zip" ]]; then
-			unzip -q "$OLDNAME" &
+			unzip -q ".$OLDNAME" &
 			printf "Extracting Folder " ; spinner $!
 			echo "[+]"
-			rm -f "$OLDNAME" > /dev/null
+			rm -f ".$OLDNAME" > /dev/null;
+		else
+			mv ".$OLDNAME" "$OLDNAME";
 		fi
 		break
 		;;
