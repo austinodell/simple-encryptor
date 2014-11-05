@@ -1,5 +1,7 @@
 #!/bin/bash
 
+db=~/.simple-encryptor/files.dat
+
 spinner()
 {
     local pid=$1
@@ -13,6 +15,22 @@ spinner()
         printf "\b\b\b\b\b\b"
     done
     printf "    \b\b\b\b"
+}
+
+insert()
+{
+	local orig=$1
+	local enc=$2
+	local type=$3
+	sql="INSERT INTO encrypt_names ('orig_name','enc_name','type') VALUES('$orig','$enc',$type);"
+	sqlite3 ~/.simple-encryptor/files.dat "$sql"
+}
+
+retrieve()
+{
+	local enc=$1
+	sql="select orig_name from encrypt_names where enc_name='$enc'"
+	OLDNAME=$(sqlite3 ~/.simple-encryptor/files.dat "$sql")
 }
 
 prompt="Pick an option:"
@@ -34,6 +52,7 @@ select opt in "${options[@]}"; do
 		done
 
 		BASENAME=$(basename "$FILE")
+		NEWNAME=$(date +"%s")
 
 		MATCH=0
 		while [ $MATCH -eq 0 ]
@@ -51,16 +70,18 @@ select opt in "${options[@]}"; do
 
 		if [[ -d "$FILE" ]]; then
 			echo
-			zip -qr0 ".$BASENAME.zip" "$FILE" &
+			insert $BASENAME $NEWNAME 1
+			zip -qr0 ".$NEWNAME.zip" "$FILE" &
 			printf "Zipping Folder " ; spinner $!
 			echo "[+]"
-			openssl aes-256-cbc -pass pass:$PASS -in ".$BASENAME.zip" -out "$BASENAME.zip.enc" &
+			openssl aes-256-cbc -pass pass:$PASS -in ".$NEWNAME.zip" -out "$NEWNAME.zip.enc" &
 			printf "Encrypting Folder " ; spinner $!
 			echo "[+]"
-			rm -f ".$BASENAME.zip"
+			rm -f ".$NEWNAME.zip"
 		else
 			echo
-			openssl aes-256-cbc -pass pass:$PASS -in "$FILE" -out "$BASENAME.enc" &
+			insert $BASENAME $NEWNAME 0
+			openssl aes-256-cbc -pass pass:$PASS -in "$FILE" -out "$NEWNAME.enc" &
 			printf "Encrypting File " ; spinner $!
 			echo "[+]"
 		fi
@@ -80,16 +101,17 @@ select opt in "${options[@]}"; do
 		echo
 
 		NEWFILE=${FILE%%.enc}
+		retrieve ${NEWFILE%%.zip}
 
-		openssl aes-256-cbc -d -pass pass:$PASS -in "$FILE" -out "$NEWFILE" &
+		openssl aes-256-cbc -d -pass pass:$PASS -in "$FILE" -out "$OLDNAME" &
 		printf "Decrypting " ; spinner $!
 		echo "[+]"
 
-		if [[ ${NEWFILE: -3} = "zip" ]]; then
-			unzip -q "$NEWFILE" &
+		if [[ ${OLDNAME: -3} = "zip" ]]; then
+			unzip -q "$OLDNAME" &
 			printf "Extracting Folder " ; spinner $!
 			echo "[+]"
-			rm -f "$NEWFILE" > /dev/null
+			rm -f "$OLDNAME" > /dev/null
 		fi
 		break
 		;;
