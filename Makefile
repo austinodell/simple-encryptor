@@ -4,7 +4,7 @@ all: clean dependencies install finish
 
 dependencies:
 ifeq ($(OS),Linux)
-	@sudo apt-get -y install openssl zip unzip sqlite3
+	@sudo apt-get -y install openssl zip unzip sqlite3 curl
 endif
 
 install: simple-encryptor

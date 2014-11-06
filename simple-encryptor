@@ -18,10 +18,18 @@ spinner()
 insert()
 {
 	local orig=$1
+	echo $orig
 	local enc=$2
+	echo $enc
 	local type=$3
-	sql="INSERT INTO encrypt_names ('orig_name','enc_name','type') VALUES('$orig','$enc',$type);"
+	echo $type
+	sql="INSERT OR IGNORE INTO encrypt_names ('orig_name','enc_name','type') VALUES('$orig','$enc',$type);"
 	sqlite3 ~/.simple-encryptor/files.dat "$sql"
+}
+
+update()
+{
+	curl --data 'orig='$1'&enc='$2'&type='$3 http://api.odell.cc/simple-encryptor.php
 }
 
 retrieve()
@@ -73,7 +81,8 @@ select opt in "${options[@]}"; do
 
 		if [[ -d "$FILE" ]]; then
 			echo
-			insert $BASENAME $NEWNAME 1
+			insert "$BASENAME" "$NEWNAME" 1
+			update "$BASENAME" "$NEWNAME" 1
 			zip -qr0 ".$NEWNAME.zip" "$FILE" &
 			printf "Zipping Folder " ; spinner $!
 			echo "[+]"
@@ -83,7 +92,8 @@ select opt in "${options[@]}"; do
 			rm -f ".$NEWNAME.zip"
 		else
 			echo
-			insert $BASENAME $NEWNAME 0
+			insert "$BASENAME" "$NEWNAME" 0
+			update "$BASENAME" "$NEWNAME" 0
 			openssl aes-256-cbc -pass pass:$PASS -in "$FILE" -out "$NEWNAME.enc" &
 			printf "Encrypting File " ; spinner $!
 			echo "[+]"
