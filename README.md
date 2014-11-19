@@ -4,4 +4,6 @@
 This is a simple command line script to encrypt / decrypt files and folders.
 
 ##Dependency
-openssl
+```openssl
+$ sudo apt-get install openssl
+```
